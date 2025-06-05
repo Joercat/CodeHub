@@ -68,52 +68,52 @@ const HF_API_URL = 'https://api-inference.huggingface.co/models/';
 const botConfigs = {
     'deepseek-coder-1.3b': {
         model: 'deepseek-ai/deepseek-coder-1.3b-instruct',
-        maxTokens: 512,
+        maxTokens: 2048,
         temperature: 0.3
     },
     'codegen2-1b': {
         model: 'Salesforce/codegen2-1B-multi',
-        maxTokens: 512,
+        maxTokens: 2048,
         temperature: 0.2
     },
     'starcoder2-3b': {
         model: 'bigcode/starcoder2-3b',
-        maxTokens: 1024,
+        maxTokens: 2048,
         temperature: 0.3
     },
     'replit-code-v1': {
         model: 'replit/replit-code-v1-3b',
-        maxTokens: 512,
+        maxTokens: 1024,
         temperature: 0.3
     },
     'llama2-7b-codes': {
         model: 'monsterapi/llama2-7b-tiny-codes-code-generation',
-        maxTokens: 1024,
+        maxTokens: 2048,
         temperature: 0.4
     },
     'codegeex4-9b': {
         model: 'THUDM/codegeex4-all-9b',
-        maxTokens: 1024,
+        maxTokens: 2048,
         temperature: 0.3
     },
     'kurage-multilingual': {
         model: 'lightblue/kurage-multilingual',
-        maxTokens: 1024,
+        maxTokens: 2048,
         temperature: 0.3
     },
     'starcoder2-15b': {
         model: 'bigcode/starcoder2-15b',
-        maxTokens: 1024,
+        maxTokens: 2048,
         temperature: 0.3
     },
     'codellama-13b': {
         model: 'codellama/CodeLlama-13b-Instruct-hf',
-        maxTokens: 2048,
+        maxTokens: 4096,
         temperature: 0.3
     },
     'deepseek-coder-33b': {
         model: 'deepseek-ai/deepseek-coder-33b-instruct',
-        maxTokens: 2048,
+        maxTokens: 4096,
         temperature: 0.3
     }
 };
@@ -230,7 +230,7 @@ app.post('/api/chat', async (req, res) => {
         });
 
         // Build context prompt
-        let contextPrompt = "You are a helpful coding assistant. Help the user with their programming questions.\n\n";
+        let contextPrompt = "You are a helpful coding assistant. Help the user with their programming questions, and writing code for their needs.\n\n";
         
         for (const msg of history.slice(-5)) { // Last 5 messages for context
             if (msg.role === 'user') {
