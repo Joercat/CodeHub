@@ -1,3 +1,4 @@
+// Load environment variables
 require('dotenv').config();
 
 const express = require('express');
@@ -275,7 +276,7 @@ app.post('/api/chat', async (req, res) => {
             botStmt.finalize();
 
             res.json({ 
-                success: true, 
+                success: true,
                 response: cleanResponse,
                 botId: botId 
             });
@@ -291,7 +292,7 @@ app.post('/api/chat', async (req, res) => {
             botStmt.finalize();
             
             res.json({ 
-                success: true, 
+                success: true,
                 response: fallbackResponse,
                 botId: botId,
                 warning: 'Using fallback response due to API issues'
@@ -316,3 +317,36 @@ app.get('/api/chat/:chatId/history', (req, res) => {
                 console.error('Database error:', err);
                 return res.status(500).json({ error: 'Database error' });
             }
+            
+            res.json({ success: true, messages: rows });
+        }
+    );
+});
+
+// Get available bots
+app.get('/api/bots', (req, res) => {
+    const bots = Object.keys(botConfigs).map(botId => ({
+        id: botId,
+        name: botId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        model: botConfigs[botId].model
+    }));
+    
+    res.json({ success: true, bots });
+});
+
+// Start server
+async function startServer() {
+    try {
+        await initializeDatabase();
+        
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+            console.log(`Visit http://localhost:${PORT} to use the application`);
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+}
+
+startServer();
