@@ -1,7 +1,10 @@
+require('dotenv').config();
+
 const express = require('express');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
+const fetch = require('node-fetch');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -68,52 +71,52 @@ const HF_API_URL = 'https://api-inference.huggingface.co/models/';
 const botConfigs = {
     'deepseek-coder-1.3b': {
         model: 'deepseek-ai/deepseek-coder-1.3b-instruct',
-        maxTokens: 2048,
+        maxTokens: 512,
         temperature: 0.3
     },
     'codegen2-1b': {
         model: 'Salesforce/codegen2-1B-multi',
-        maxTokens: 2048,
+        maxTokens: 512,
         temperature: 0.2
     },
     'starcoder2-3b': {
         model: 'bigcode/starcoder2-3b',
-        maxTokens: 2048,
+        maxTokens: 1024,
         temperature: 0.3
     },
     'replit-code-v1': {
         model: 'replit/replit-code-v1-3b',
-        maxTokens: 1024,
+        maxTokens: 512,
         temperature: 0.3
     },
     'llama2-7b-codes': {
         model: 'monsterapi/llama2-7b-tiny-codes-code-generation',
-        maxTokens: 2048,
+        maxTokens: 1024,
         temperature: 0.4
     },
     'codegeex4-9b': {
         model: 'THUDM/codegeex4-all-9b',
-        maxTokens: 2048,
+        maxTokens: 1024,
         temperature: 0.3
     },
     'kurage-multilingual': {
         model: 'lightblue/kurage-multilingual',
-        maxTokens: 2048,
+        maxTokens: 1024,
         temperature: 0.3
     },
     'starcoder2-15b': {
         model: 'bigcode/starcoder2-15b',
-        maxTokens: 2048,
+        maxTokens: 1024,
         temperature: 0.3
     },
     'codellama-13b': {
         model: 'codellama/CodeLlama-13b-Instruct-hf',
-        maxTokens: 4096,
+        maxTokens: 2048,
         temperature: 0.3
     },
     'deepseek-coder-33b': {
         model: 'deepseek-ai/deepseek-coder-33b-instruct',
-        maxTokens: 4096,
+        maxTokens: 2048,
         temperature: 0.3
     }
 };
@@ -124,36 +127,41 @@ async function queryHuggingFace(model, prompt, config) {
         throw new Error('Hugging Face API key not configured');
     }
 
-    const response = await fetch(`${HF_API_URL}${model}`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${HF_API_KEY}`,
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            inputs: prompt,
-            parameters: {
-                max_new_tokens: config.maxTokens,
-                temperature: config.temperature,
-                return_full_text: false,
-                do_sample: true
-            }
-        })
-    });
+    try {
+        const response = await fetch(`${HF_API_URL}${model}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${HF_API_KEY}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                inputs: prompt,
+                parameters: {
+                    max_new_tokens: config.maxTokens,
+                    temperature: config.temperature,
+                    return_full_text: false,
+                    do_sample: true
+                }
+            })
+        });
 
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HuggingFace API error: ${response.status} - ${errorText}`);
-    }
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HuggingFace API error: ${response.status} - ${errorText}`);
+        }
 
-    const result = await response.json();
-    
-    if (Array.isArray(result) && result.length > 0) {
-        return result[0].generated_text || result[0].text || 'No response generated';
-    } else if (result.generated_text) {
-        return result.generated_text;
-    } else {
-        return 'Unable to generate response';
+        const result = await response.json();
+        
+        if (Array.isArray(result) && result.length > 0) {
+            return result[0].generated_text || result[0].text || 'No response generated';
+        } else if (result.generated_text) {
+            return result.generated_text;
+        } else {
+            return 'Unable to generate response';
+        }
+    } catch (error) {
+        console.error('HuggingFace API Error:', error);
+        throw error;
     }
 }
 
@@ -230,7 +238,7 @@ app.post('/api/chat', async (req, res) => {
         });
 
         // Build context prompt
-        let contextPrompt = "You are a helpful coding assistant. Help the user with their programming questions, and writing code for their needs.\n\n";
+        let contextPrompt = "You are a helpful coding assistant. Help the user with their programming questions.\n\n";
         
         for (const msg of history.slice(-5)) { // Last 5 messages for context
             if (msg.role === 'user') {
