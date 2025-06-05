@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Codehub</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .bot-categories {
+            display: grid;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .category {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .category h2 {
+            color: #4a5568;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .speed-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .speed-fast { background: #48bb78; color: white; }
+        .speed-medium { background: #ed8936; color: white; }
+        .speed-slow { background: #e53e3e; color: white; }
+
+        .bots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .bot-card {
+            background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+            border-radius: 12px;
+            padding: 20px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bot-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            border-color: #667eea;
+        }
+
+        .bot-card.selected {
+            border-color: #48bb78;
+            background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);
+        }
+
+        .bot-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .bot-model {
+            font-size: 0.9rem;
+            color: #718096;
+            margin-bottom: 12px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .bot-stats {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .power-rating {
+            display: flex;
+            gap: 2px;
+        }
+
+        .star {
+            color: #ffd700;
+            font-size: 1.2rem;
+        }
+
+        .star.empty {
+            color: #e2e8f0;
+        }
+
+        .bot-description {
+            font-size: 0.9rem;
+            color: #4a5568;
+            line-height: 1.4;
+        }
+
+        .chat-container {
+            display: none;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .current-bot {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .new-chat-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .new-chat-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            background: #f7fafc;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 10px;
+            max-width: 80%;
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+        }
+
+        .bot-message {
+            background: white;
+            border: 1px solid #e2e8f0;
+            color: #2d3748;
+        }
+
+        .message pre {
+            background: rgba(0,0,0,0.1);
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .input-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 50px;
+        }
+
+        .send-btn {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .send-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .send-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #718096;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e2e8f0;
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fed7d7;
+            border: 1px solid #fc8181;
+            color: #c53030;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .bots-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI Codehub</h1>
+            <p>Choose your perfect coding companion from our curated collection</p>
+        </div>
+
+        <div id="bot-selection" class="bot-categories">
+            <div class="category">
+                <h2>
+                    ⚡ Lightning Fast 
+                    <span class="speed-badge speed-fast">FAST</span>
+                </h2>
+                <div class="bots-grid" id="fast-bots"></div>
+            </div>
+
+            <div class="category">
+                <h2>
+                    🚀 Balanced Performance 
+                    <span class="speed-badge speed-medium">MEDIUM</span>
+                </h2>
+                <div class="bots-grid" id="medium-bots"></div>
+            </div>
+
+            <div class="category">
+                <h2>
+                    🧠 Maximum Power 
+                    <span class="speed-badge speed-slow">POWERFUL</span>
+                </h2>
+                <div class="bots-grid" id="slow-bots"></div>
+            </div>
+        </div>
+
+        <div id="chat-interface" class="chat-container">
+            <div class="chat-header">
+                <div class="current-bot" id="current-bot-name"></div>
+                <button class="new-chat-btn" onclick="startNewChat()">New Chat</button>
+            </div>
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <span>AI is thinking...</span>
+            </div>
+            <div class="input-area">
+                <textarea 
+                    id="message-input" 
+                    class="message-input" 
+                    placeholder="Ask me anything about coding..."
+                    rows="2"
+                ></textarea>
+                <button class="send-btn" onclick="sendMessage()" id="send-btn">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const bots = {
+            fast: [
+                {
+                    id: 'deepseek-coder-1.3b',
+                    name: 'DeepSeek Coder Mini',
+                    model: 'deepseek-ai/deepseek-coder-1.3b-instruct',
+                    power: 2,
+                    description: 'Lightweight and fast coding assistant perfect for quick tasks'
+                },
+                {
+                    id: 'codegen2-1b',
+                    name: 'CodeGen2 Compact',
+                    model: 'Salesforce/codegen2-1B-multi',
+                    power: 1,
+                    description: 'Ultra-fast code generation for multiple programming languages'
+                },
+                {
+                    id: 'starcoder2-3b',
+                    name: 'StarCoder2 Swift',
+                    model: 'bigcode/starcoder2-3b',
+                    power: 2,
+                    description: 'Advanced code completion with rapid response times'
+                },
+                {
+                    id: 'replit-code-v1',
+                    name: 'Replit Assistant',
+                    model: 'replit/replit-code-v1-3b',
+                    power: 2,
+                    description: 'Optimized for interactive coding and debugging'
+                }
+            ],
+            medium: [
+                {
+                    id: 'llama2-7b-codes',
+                    name: 'Llama2 Coder',
+                    model: 'monsterapi/llama2-7b-tiny-codes-code-generation',
+                    power: 2,
+                    description: 'Balanced performance for general coding tasks'
+                },
+                {
+                    id: 'codegeex4-9b',
+                    name: 'CodeGeeX4 Pro',
+                    model: 'THUDM/codegeex4-all-9b',
+                    power: 3,
+                    description: 'Multilingual coding expert with strong reasoning'
+                },
+                {
+                    id: 'kurage-multilingual',
+                    name: 'Kurage Universal',
+                    model: 'lightblue/kurage-multilingual',
+                    power: 2,
+                    description: 'Specialized in multilingual code understanding'
+                },
+                {
+                    id: 'starcoder2-15b',
+                    name: 'StarCoder2 Enhanced',
+                    model: 'bigcode/starcoder2-15b',
+                    power: 3,
+                    description: 'Enhanced version with superior code quality'
+                }
+            ],
+            slow: [
+                {
+                    id: 'codellama-13b',
+                    name: 'CodeLlama Expert',
+                    model: 'codellama/CodeLlama-13b-Instruct-hf',
+                    power: 3,
+                    description: 'Premium coding assistant with advanced reasoning'
+                },
+                {
+                    id: 'deepseek-coder-33b',
+                    name: 'DeepSeek Coder Pro',
+                    model: 'deepseek-ai/deepseek-coder-33b-instruct',
+                    power: 3,
+                    description: 'Top-tier coding intelligence for complex projects'
+                }
+            ]
+        };
+
+        let currentBot = null;
+        let chatId = null;
+
+        function createStars(rating) {
+            let stars = '';
+            for (let i = 1; i <= 3; i++) {
+                stars += `<span class="star ${i <= rating ? '' : 'empty'}">★</span>`;
+            }
+            return stars;
+        }
+
+        function renderBots() {
+            Object.keys(bots).forEach(category => {
+                const container = document.getElementById(`${category}-bots`);
+                container.innerHTML = bots[category].map(bot => `
+                    <div class="bot-card" onclick="selectBot('${bot.id}')">
+                        <div class="bot-name">${bot.name}</div>
+                        <div class="bot-model">${bot.model}</div>
+                        <div class="bot-stats">
+                            <div class="power-rating">${createStars(bot.power)}</div>
+                        </div>
+                        <div class="bot-description">${bot.description}</div>
+                    </div>
+                `).join('');
+            });
+        }
+
+        async function selectBot(botId) {
+            const bot = findBotById(botId);
+            if (!bot) return;
+
+            currentBot = bot;
+            chatId = Date.now().toString();
+            
+            document.getElementById('current-bot-name').textContent = bot.name;
+            document.getElementById('bot-selection').style.display = 'none';
+            document.getElementById('chat-interface').style.display = 'block';
+            document.getElementById('chat-messages').innerHTML = '';
+            
+            // Initialize chat with bot
+            try {
+                await fetch('/api/init-chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chatId, botId: bot.id, botModel: bot.model })
+                });
+            } catch (error) {
+                console.error('Failed to initialize chat:', error);
+            }
+        }
+
+        function findBotById(botId) {
+            for (const category of Object.values(bots)) {
+                const bot = category.find(b => b.id === botId);
+                if (bot) return bot;
+            }
+            return null;
+        }
+
+        function startNewChat() {
+            document.getElementById('bot-selection').style.display = 'block';
+            document.getElementById('chat-interface').style.display = 'none';
+            currentBot = null;
+            chatId = null;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const message = input.value.trim();
+            
+            if (!message || !currentBot) return;
+            
+            const messagesContainer = document.getElementById('chat-messages');
+            const sendBtn = document.getElementById('send-btn');
+            const loading = document.getElementById('loading');
+            
+            // Add user message
+            messagesContainer.innerHTML += `
+                <div class="message user-message">${escapeHtml(message)}</div>
+            `;
+            
+            input.value = '';
+            sendBtn.disabled = true;
+            loading.style.display = 'block';
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            try {
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chatId,
+                        message,
+                        botId: currentBot.id,
+                        botModel: currentBot.model
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    messagesContainer.innerHTML += `
+                        <div class="message bot-message">
+                            <pre><code>${escapeHtml(data.response)}</code></pre>
+                        </div>
+                    `;
+                } else {
+                    messagesContainer.innerHTML += `
+                        <div class="message bot-message error">
+                            Error: ${escapeHtml(data.error)}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                messagesContainer.innerHTML += `
+                    <div class="message bot-message error">
+                        Connection error. Please try again.
+                    </div>
+                `;
+            } finally {
+                loading.style.display = 'none';
+                sendBtn.disabled = false;
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Event listeners
+        document.getElementById('message-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Initialize
+        renderBots();
+    </script>
+</body>
+</html>
