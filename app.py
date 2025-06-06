@@ -24,82 +24,163 @@ DATABASE_PATH = 'ai_memory.db'
 
 # Model configurations with speed categories and power ratings
 MODELS_CONFIG = {
-    # Lightning Fast (1-2 stars)
+    # Lightning Fast - Smaller, faster models (WORKING MODELS)
+    "distilgpt2": {
+        "name": "DistilGPT2",
+        "category": "lightning", 
+        "power": 1,
+        "description": "Lightweight version of GPT-2",
+        "specs": "82M params • General purpose • Very fast"
+    },
+    "gpt2": {
+        "name": "GPT-2",
+        "category": "lightning",
+        "power": 2,
+        "description": "OpenAI's GPT-2 model for text generation",
+        "specs": "124M params • Text generation • Reliable"
+    },
+    "microsoft/DialoGPT-small": {
+        "name": "DialoGPT Small",
+        "category": "lightning",
+        "power": 1,
+        "description": "Fast conversational AI model",
+        "specs": "117M params • Conversational • Fast inference"
+    },
+    
+    # Balanced Performance (WORKING MODELS)
+    "microsoft/DialoGPT-medium": {
+        "name": "DialoGPT Medium",
+        "category": "balanced",
+        "power": 2,
+        "description": "Balanced conversational model",
+        "specs": "345M params • Conversational • Good balance"
+    },
+    "facebook/blenderbot-400M-distill": {
+        "name": "BlenderBot 400M",
+        "category": "balanced",
+        "power": 2,
+        "description": "Facebook's conversational AI",
+        "specs": "400M params • Conversational • Engaging"
+    },
+    "microsoft/codebert-base": {
+        "name": "CodeBERT Base",
+        "category": "balanced",
+        "power": 2,
+        "description": "Microsoft's code understanding model",
+        "specs": "125M params • Code-focused • Versatile"
+    },
+    
+    # Maximum Power (WORKING MODELS)
+    "microsoft/DialoGPT-large": {
+        "name": "DialoGPT Large",
+        "category": "power",
+        "power": 3,
+        "description": "Large conversational model with high quality responses",
+        "specs": "762M params • High quality • Conversational"
+    },
+    "facebook/blenderbot-1B-distill": {
+        "name": "BlenderBot 1B",
+        "category": "power", 
+        "power": 3,
+        "description": "Large-scale conversational AI",
+        "specs": "1B params • Advanced conversation • High quality"
+    },
+    "EleutherAI/gpt-neo-1.3B": {
+        "name": "GPT-Neo 1.3B",
+        "category": "power",
+        "power": 3,
+        "description": "Large language model for complex tasks",
+        "specs": "1.3B params • Advanced reasoning • High quality"
+    },
+    
+    # ORIGINAL MODEL FOR TESTING (keeping one as requested)
     "deepseek-ai/deepseek-coder-1.3b-instruct": {
-        "name": "DeepSeek Coder 1.3B",
+        "name": "DeepSeek Coder 1.3B (TEST)",
         "category": "lightning",
         "power": 1,
-        "description": "Ultra-fast lightweight model for quick code suggestions",
-        "specs": "1.3B params • Instruct-tuned • Multi-language"
-    },
-    "Salesforce/codegen2-1B-multi": {
-        "name": "CodeGen2 1B Multi",
-        "category": "lightning",
-        "power": 1,
-        "description": "Salesforce's efficient multi-language code generator",
-        "specs": "1B params • Multi-language • Fast inference"
-    },
-    "monsterapi/llama2-7b-tiny-codes-code-generation": {
-        "name": "Llama2 Tiny Codes",
-        "category": "lightning",
-        "power": 2,
-        "description": "Optimized Llama2 variant for code generation tasks",
-        "specs": "7B params • Code-focused • Fast generation"
-    },
-    
-    # Balanced Performance (2 stars)
-    "bigcode/starcoder2-3b": {
-        "name": "StarCoder2 3B",
-        "category": "balanced",
-        "power": 2,
-        "description": "BigCode's balanced model with excellent code understanding",
-        "specs": "3B params • State-of-the-art • 80+ languages"
-    },
-    "replit/replit-code-v1-3b": {
-        "name": "Replit Code v1 3B",
-        "category": "balanced",
-        "power": 2,
-        "description": "Replit's code-specialized model with IDE integration focus",
-        "specs": "3B params • IDE-optimized • Multi-language"
-    },
-    "THUDM/codegeex4-all-9b": {
-        "name": "CodeGeeX4 All 9B",
-        "category": "balanced",
-        "power": 2,
-        "description": "Comprehensive code model with strong reasoning capabilities",
-        "specs": "9B params • All-purpose • Advanced reasoning"
-    },
-    "lightblue/kurage-multilingual": {
-        "name": "Kurage Multilingual",
-        "category": "balanced",
-        "power": 2,
-        "description": "Specialized multilingual coding assistant",
-        "specs": "Multilingual • Code-focused • Balanced speed"
-    },
-    
-    # Maximum Power (3 stars)
-    "codellama/CodeLlama-13b-Instruct-hf": {
-        "name": "Code Llama 13B Instruct",
-        "category": "power",
-        "power": 3,
-        "description": "Meta's powerful instruction-tuned coding model",
-        "specs": "13B params • Instruct-tuned • High accuracy"
-    },
-    "bigcode/starcoder2-15b": {
-        "name": "StarCoder2 15B",
-        "category": "power",
-        "power": 3,
-        "description": "Most powerful StarCoder variant with exceptional capabilities",
-        "specs": "15B params • Top performance • 80+ languages"
-    },
-    "deepseek-ai/deepseek-coder-33b-instruct": {
-        "name": "DeepSeek Coder 33B",
-        "category": "power",
-        "power": 3,
-        "description": "Most powerful model with exceptional reasoning and code quality",
-        "specs": "33B params • Maximum power • Enterprise-grade"
+        "description": "Ultra-fast lightweight model for quick code suggestions (ORIGINAL - FOR TESTING)",
+        "specs": "1.3B params • Instruct-tuned • Multi-language • MAY NOT WORK"
     }
 }
+
+def debug_huggingface_api(model_name):
+    """Debug function to check API connectivity and model availability"""
+    # Check if API key is set
+    api_key = os.getenv('HUGGINGFACE_API_KEY', '')
+    if not api_key:
+        return {
+            'error': 'No API key found',
+            'solution': 'Set HUGGINGFACE_API_KEY environment variable',
+            'model': model_name
+        }
+    
+    # Test API connectivity
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    # First, try to get model info
+    model_info_url = f"https://huggingface.co/api/models/{model_name}"
+    try:
+        info_response = requests.get(model_info_url, timeout=10)
+        logger.info(f"Model info status for {model_name}: {info_response.status_code}")
+        
+        if info_response.status_code == 404:
+            return {
+                'error': f'Model {model_name} not found on Hugging Face',
+                'solution': 'Try a different model name or check if model exists on Hugging Face',
+                'model': model_name,
+                'status_code': 404
+            }
+        elif info_response.status_code == 200:
+            model_info = info_response.json()
+            logger.info(f"Model {model_name} exists, testing inference...")
+    except Exception as e:
+        logger.error(f"Error checking model info for {model_name}: {e}")
+    
+    # Test inference endpoint
+    inference_url = f"https://api-inference.huggingface.co/models/{model_name}"
+    test_payload = {
+        "inputs": "Hello, how are you?",
+        "parameters": {
+            "max_new_tokens": 50,
+            "temperature": 0.7,
+            "do_sample": True,
+            "return_full_text": False
+        }
+    }
+    
+    try:
+        response = requests.post(inference_url, headers=headers, json=test_payload, timeout=30)
+        
+        result = {
+            'model': model_name,
+            'status_code': response.status_code,
+            'url': inference_url,
+            'api_key_set': bool(api_key and len(api_key) > 10)
+        }
+        
+        if response.status_code == 200:
+            try:
+                response_json = response.json()
+                result['success'] = True
+                result['response_preview'] = str(response_json)[:200]
+            except:
+                result['response_text'] = response.text[:200]
+        else:
+            result['error_response'] = response.text[:500]
+            result['headers'] = dict(response.headers)
+        
+        return result
+        
+    except Exception as e:
+        return {
+            'error': f'Request failed: {str(e)}',
+            'model': model_name,
+            'url': inference_url,
+            'api_key_set': bool(api_key and len(api_key) > 10)
+        }
 
 def init_database():
     """Initialize SQLite database for AI memory"""
@@ -193,11 +274,15 @@ def clear_chat_memory(chat_id):
     conn.close()
 
 def call_huggingface_api(model_name, prompt, chat_history=None):
-    """Call Hugging Face API with retry logic"""
+    """Call Hugging Face API with enhanced error handling and retry logic"""
     headers = {
         "Authorization": f"Bearer {HF_API_KEY}",
         "Content-Type": "application/json"
     }
+    
+    # Check API key
+    if not HF_API_KEY:
+        return "Error: Hugging Face API key not set. Please set HUGGINGFACE_API_KEY environment variable."
     
     # Build context from chat history
     context = ""
@@ -228,7 +313,10 @@ def call_huggingface_api(model_name, prompt, chat_history=None):
     max_retries = 3
     for attempt in range(max_retries):
         try:
+            logger.info(f"Attempting API call to {model_name} (attempt {attempt + 1})")
             response = requests.post(url, headers=headers, json=payload, timeout=30)
+            
+            logger.info(f"Response status: {response.status_code}")
             
             if response.status_code == 200:
                 result = response.json()
@@ -241,6 +329,10 @@ def call_huggingface_api(model_name, prompt, chat_history=None):
                 else:
                     return "I received an unexpected response format. Please try again."
                     
+            elif response.status_code == 404:
+                logger.error(f"Model not found: {model_name}")
+                return f"Error: Model '{model_name}' not found. This model may not exist or may not be available via the Inference API."
+                
             elif response.status_code == 503:
                 # Model loading
                 if attempt < max_retries - 1:
@@ -261,9 +353,12 @@ def call_huggingface_api(model_name, prompt, chat_history=None):
                 else:
                     return "I'm currently experiencing high traffic. Please try again in a moment."
                     
+            elif response.status_code == 401:
+                return "Error: Invalid API key. Please check your HUGGINGFACE_API_KEY."
+                
             else:
                 logger.error(f"API error: {response.status_code} - {response.text}")
-                return f"I encountered an error (code {response.status_code}). Please try again."
+                return f"I encountered an error (code {response.status_code}): {response.text[:200]}"
                 
         except requests.exceptions.Timeout:
             if attempt < max_retries - 1:
@@ -275,7 +370,7 @@ def call_huggingface_api(model_name, prompt, chat_history=None):
                 
         except requests.exceptions.RequestException as e:
             logger.error(f"Request error: {str(e)}")
-            return "I'm having trouble connecting to the AI service. Please try again."
+            return f"I'm having trouble connecting to the AI service: {str(e)}"
     
     return "I'm unable to process your request right now. Please try again later."
 
@@ -295,6 +390,7 @@ def index():
             <h1>AI Platform</h1>
             <p>Error: index.html file not found. Please create the frontend file.</p>
             <p>API is running at: <a href="/api/health">/api/health</a></p>
+            <p>Debug models at: <a href="/api/debug/gpt2">/api/debug/gpt2</a></p>
         </body>
         </html>
         """
@@ -367,9 +463,31 @@ def get_chat_history(chat_id):
         logger.error(f"Get history error: {str(e)}")
         return jsonify({'error': 'Failed to retrieve chat history'}), 500
 
+@app.route('/api/debug/<model_name>')
+def debug_model(model_name):
+    """Debug endpoint to check model availability and API connectivity"""
+    result = debug_huggingface_api(model_name)
+    return jsonify(result)
+
+@app.route('/api/debug/all')
+def debug_all_models():
+    """Debug all models to see which ones work"""
+    results = {}
+    
+    for model_name in MODELS_CONFIG.keys():
+        logger.info(f"Debugging model: {model_name}")
+        results[model_name] = debug_huggingface_api(model_name)
+        time.sleep(1)  # Small delay to avoid rate limiting
+    
+    return jsonify({
+        'debug_results': results,
+        'api_key_configured': bool(HF_API_KEY and len(HF_API_KEY) > 10),
+        'timestamp': datetime.now().isoformat()
+    })
+
 @app.route('/api/test/<model_name>')
 def test_model(model_name):
-    """Test endpoint for AI models"""
+    """Test endpoint for AI models with enhanced debugging"""
     try:
         if model_name not in MODELS_CONFIG:
             return jsonify({'error': f'Model {model_name} not found'}), 404
@@ -392,8 +510,9 @@ def test_model(model_name):
             'test_prompt': test_prompt,
             'response': response,
             'response_time_seconds': response_time,
-            'status': 'success',
-            'timestamp': datetime.now().isoformat()
+            'status': 'success' if not response.startswith('Error:') else 'failed',
+            'timestamp': datetime.now().isoformat(),
+            'api_key_configured': bool(HF_API_KEY and len(HF_API_KEY) > 10)
         })
         
     except Exception as e:
@@ -407,7 +526,7 @@ def test_model(model_name):
 
 @app.route('/api/test/all')
 def test_all_models():
-    """Test all available models"""
+    """Test all available models with enhanced error reporting"""
     results = {}
     test_prompt = "Write a simple hello world function in Python."
     
@@ -425,7 +544,7 @@ def test_all_models():
                 'model_info': model_info,
                 'response': response,
                 'response_time_seconds': response_time,
-                'status': 'success'
+                'status': 'success' if not response.startswith('Error:') else 'failed'
             }
             
         except Exception as e:
@@ -442,17 +561,20 @@ def test_all_models():
     return jsonify({
         'test_prompt': test_prompt,
         'results': results,
+        'api_key_configured': bool(HF_API_KEY and len(HF_API_KEY) > 10),
         'timestamp': datetime.now().isoformat()
     })
 
 @app.route('/api/health')
 def health_check():
-    """Health check endpoint"""
+    """Health check endpoint with API key status"""
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'models_count': len(MODELS_CONFIG),
-        'database_path': DATABASE_PATH
+        'database_path': DATABASE_PATH,
+        'api_key_configured': bool(HF_API_KEY and len(HF_API_KEY) > 10),
+        'api_key_length': len(HF_API_KEY) if HF_API_KEY else 0
     })
 
 @app.route('/api/stats')
@@ -487,6 +609,7 @@ def get_stats():
             'total_messages': total_messages,
             'popular_models': [{'model': model, 'usage_count': count} for model, count in popular_models],
             'available_models': len(MODELS_CONFIG),
+            'api_key_configured': bool(HF_API_KEY and len(HF_API_KEY) > 10),
             'timestamp': datetime.now().isoformat()
         })
         
@@ -498,11 +621,18 @@ if __name__ == '__main__':
     # Initialize database on startup
     init_database()
     
+    # Check API key on startup
+    if not HF_API_KEY:
+        logger.warning("WARNING: HUGGINGFACE_API_KEY not set! Set it with: export HUGGINGFACE_API_KEY='your_token'")
+    else:
+        logger.info(f"API key configured (length: {len(HF_API_KEY)})")
+    
     # Get port from environment variable (for Render.com deployment)
     port = int(os.environ.get('PORT', 5000))
     
     logger.info(f"Starting AI Code Assistant Platform on port {port}")
     logger.info(f"Available models: {len(MODELS_CONFIG)}")
+    logger.info("Debug endpoints available at /api/debug/<model_name> and /api/debug/all")
     
     # Run the application
     app.run(
