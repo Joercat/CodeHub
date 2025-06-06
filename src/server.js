@@ -270,8 +270,8 @@ async function queryHuggingFace(model, prompt, config) {
                 } else if (response.status === 503) {
                     // Model is loading, wait and retry
                     if (attempt < maxRetries) {
-                        console.log(`Model ${model} is loading, waiting 5 seconds...`);
-                        await new Promise(resolve => setTimeout(resolve, 5000));
+                        console.log(`Model ${model} is loading, waiting 15 seconds...`);
+                        await new Promise(resolve => setTimeout(resolve, 15000));
                         continue;
                     }
                     throw new Error(`Model '${model}' is currently loading. Please try again later.`);
