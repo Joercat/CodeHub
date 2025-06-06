@@ -166,9 +166,206 @@ async function queryHuggingFace(model, prompt, config) {
     }
 }
 
+// Test individual model function
+async function testModel(botId, config) {
+    const testPrompt = "Write a simple Python function to add two numbers.";
+    const startTime = Date.now();
+    
+    try {
+        const response = await queryHuggingFace(config.model, testPrompt, config);
+        const responseTime = Date.now() - startTime;
+        
+        return {
+            botId,
+            model: config.model,
+            status: 'working',
+            responseTime: `${responseTime}ms`,
+            response: response.substring(0, 200) + (response.length > 200 ? '...' : ''),
+            error: null
+        };
+    } catch (error) {
+        const responseTime = Date.now() - startTime;
+        
+        return {
+            botId,
+            model: config.model,
+            status: 'error',
+            responseTime: `${responseTime}ms`,
+            response: null,
+            error: error.message
+        };
+    }
+}
+
 // Routes
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Test endpoint to check which AIs are working
+app.get('/test', async (req, res) => {
+    const testSingleBot = req.query.bot;
+    
+    // Check if API key is configured
+    if (!HF_API_KEY) {
+        return res.status(500).json({
+            error: 'Hugging Face API key not configured',
+            message: 'Please set HF_API_KEY in your environment variables'
+        });
+    }
+
+    try {
+        let results = [];
+        
+        if (testSingleBot) {
+            // Test single bot
+            if (!botConfigs[testSingleBot]) {
+                return res.status(400).json({
+                    error: `Bot '${testSingleBot}' not found`,
+                    availableBots: Object.keys(botConfigs)
+                });
+            }
+            
+            console.log(`Testing single bot: ${testSingleBot}`);
+            results.push(await testModel(testSingleBot, botConfigs[testSingleBot]));
+        } else {
+            // Test all bots
+            console.log('Testing all AI models...');
+            
+            const testPromises = Object.entries(botConfigs).map(([botId, config]) => 
+                testModel(botId, config)
+            );
+            
+            // Run tests with a timeout to prevent hanging
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Test timeout')), 60000)
+            );
+            
+            try {
+                results = await Promise.race([
+                    Promise.allSettled(testPromises),
+                    timeoutPromise
+                ]);
+                
+                // Convert settled promises to results
+                results = results.map(result => 
+                    result.status === 'fulfilled' ? result.value : {
+                        status: 'error',
+                        error: result.reason?.message || 'Unknown error'
+                    }
+                );
+            } catch (timeoutError) {
+                return res.status(500).json({
+                    error: 'Test timeout',
+                    message: 'Some models took too long to respond'
+                });
+            }
+        }
+
+        // Generate summary
+        const working = results.filter(r => r.status === 'working');
+        const errors = results.filter(r => r.status === 'error');
+        
+        const summary = {
+            totalModels: results.length,
+            working: working.length,
+            errors: errors.length,
+            workingModels: working.map(r => r.botId),
+            errorModels: errors.map(r => r.botId)
+        };
+
+        // HTML response for browser viewing
+        if (req.headers.accept && req.headers.accept.includes('text/html')) {
+            let html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>AI Models Test Results</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 20px; }
+                    .summary { background: #f0f0f0; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+                    .model { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
+                    .working { border-left: 5px solid #4CAF50; }
+                    .error { border-left: 5px solid #f44336; }
+                    .response { background: #f9f9f9; padding: 10px; margin-top: 10px; border-radius: 3px; font-family: monospace; }
+                    .error-text { color: #f44336; }
+                    .success-text { color: #4CAF50; }
+                    .refresh-btn { background: #2196F3; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 20px; }
+                    .test-single { margin-bottom: 20px; }
+                    .test-single input { padding: 8px; margin-right: 10px; }
+                    .test-single button { padding: 8px 15px; background: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer; }
+                </style>
+            </head>
+            <body>
+                <h1>AI Models Test Results</h1>
+                
+                <div class="test-single">
+                    <h3>Test Single Model:</h3>
+                    <input type="text" id="botId" placeholder="Enter bot ID (e.g., deepseek-coder-1.3b)">
+                    <button onclick="testSingle()">Test Single Bot</button>
+                </div>
+                
+                <button class="refresh-btn" onclick="location.reload()">Refresh All Tests</button>
+                
+                <div class="summary">
+                    <h2>Summary</h2>
+                    <p><strong>Total Models:</strong> ${summary.totalModels}</p>
+                    <p><strong class="success-text">Working:</strong> ${summary.working}</p>
+                    <p><strong class="error-text">Errors:</strong> ${summary.errors}</p>
+                    <p><strong>Working Models:</strong> ${summary.workingModels.join(', ') || 'None'}</p>
+                    <p><strong>Error Models:</strong> ${summary.errorModels.join(', ') || 'None'}</p>
+                </div>
+                
+                <h2>Detailed Results</h2>
+            `;
+            
+            results.forEach(result => {
+                const statusClass = result.status === 'working' ? 'working' : 'error';
+                html += `
+                <div class="model ${statusClass}">
+                    <h3>${result.botId}</h3>
+                    <p><strong>Model:</strong> ${result.model}</p>
+                    <p><strong>Status:</strong> <span class="${result.status === 'working' ? 'success-text' : 'error-text'}">${result.status.toUpperCase()}</span></p>
+                    <p><strong>Response Time:</strong> ${result.responseTime}</p>
+                    ${result.error ? `<p><strong>Error:</strong> <span class="error-text">${result.error}</span></p>` : ''}
+                    ${result.response ? `<div class="response"><strong>Sample Response:</strong><br>${result.response}</div>` : ''}
+                </div>
+                `;
+            });
+            
+            html += `
+                <script>
+                    function testSingle() {
+                        const botId = document.getElementById('botId').value;
+                        if (botId) {
+                            window.location.href = '/test?bot=' + encodeURIComponent(botId);
+                        } else {
+                            alert('Please enter a bot ID');
+                        }
+                    }
+                </script>
+            </body>
+            </html>
+            `;
+            
+            res.send(html);
+        } else {
+            // JSON response for API calls
+            res.json({
+                success: true,
+                summary,
+                results,
+                timestamp: new Date().toISOString()
+            });
+        }
+
+    } catch (error) {
+        console.error('Test endpoint error:', error);
+        res.status(500).json({
+            error: 'Server error during testing',
+            message: error.message
+        });
+    }
 });
 
 // Initialize chat session
@@ -342,6 +539,7 @@ async function startServer() {
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
             console.log(`Visit http://localhost:${PORT} to use the application`);
+            console.log(`Visit http://localhost:${PORT}/test to test AI models`);
         });
     } catch (error) {
         console.error('Failed to start server:', error);
