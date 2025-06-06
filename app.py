@@ -16,7 +16,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Hugging Face API configuration
-HF_API_KEY = os.getenv('HUGGINGFACE_API_KEY', 'your-api-key-here')
+HF_API_KEY = os.getenv('HUGGINGFACE_API_KEY', '')
 HF_API_BASE = "https://api-inference.huggingface.co/models/"
 
 # Database configuration
