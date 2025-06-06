@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Code Assistant Platform</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.4.0/axios.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            color: white;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        .bot-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .category {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .category h2 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #4a5568;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .speed-icon {
+            font-size: 1.5rem;
+        }
+
+        .bot-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .bot-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            border-color: #667eea;
+        }
+
+        .bot-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .bot-header {
+            display: flex;
+            justify-content: between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+
+        .bot-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            flex: 1;
+        }
+
+        .bot-power {
+            font-size: 1.2rem;
+            color: #ffd700;
+            margin-left: 10px;
+        }
+
+        .bot-description {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-bottom: 10px;
+        }
+
+        .bot-specs {
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .chat-section {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .selected-bot-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .selected-bot-name {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #4a5568;
+        }
+
+        .chat-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .chat-messages {
+            height: 400px;
+            overflow-y: auto;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background: #f8fafc;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 15px;
+            max-width: 80%;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .message.bot {
+            background: white;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .message pre {
+            background: rgba(0, 0, 0, 0.1);
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+
+        .input-section {
+            display: flex;
+            gap: 15px;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            font-size: 1rem;
+            resize: vertical;
+            min-height: 60px;
+            transition: border-color 0.3s ease;
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .no-selection {
+            text-align: center;
+            padding: 50px;
+            color: #a0aec0;
+            font-size: 1.2rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .bot-categories {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .category {
+                padding: 20px;
+            }
+
+            .chat-section {
+                padding: 20px;
+            }
+
+            .input-section {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AI Code Assistant Platform</h1>
+            <p>Choose your AI coding companion and start building amazing projects!</p>
+        </div>
+
+        <div class="bot-categories">
+            <div class="category">
+                <h2><span class="speed-icon">⚡</span>Lightning Fast</h2>
+                <div class="bot-card" data-model="deepseek-ai/deepseek-coder-1.3b-instruct">
+                    <div class="bot-header">
+                        <div class="bot-name">DeepSeek Coder 1.3B</div>
+                        <div class="bot-power">⭐</div>
+                    </div>
+                    <div class="bot-description">Ultra-fast lightweight model for quick code suggestions</div>
+                    <div class="bot-specs">1.3B params • Instruct-tuned • Multi-language</div>
+                </div>
+                <div class="bot-card" data-model="Salesforce/codegen2-1B-multi">
+                    <div class="bot-header">
+                        <div class="bot-name">CodeGen2 1B Multi</div>
+                        <div class="bot-power">⭐</div>
+                    </div>
+                    <div class="bot-description">Salesforce's efficient multi-language code generator</div>
+                    <div class="bot-specs">1B params • Multi-language • Fast inference</div>
+                </div>
+                <div class="bot-card" data-model="monsterapi/llama2-7b-tiny-codes-code-generation">
+                    <div class="bot-header">
+                        <div class="bot-name">Llama2 Tiny Codes</div>
+                        <div class="bot-power">⭐⭐</div>
+                    </div>
+                    <div class="bot-description">Optimized Llama2 variant for code generation tasks</div>
+                    <div class="bot-specs">7B params • Code-focused • Fast generation</div>
+                </div>
+            </div>
+
+            <div class="category">
+                <h2><span class="speed-icon">🏃</span>Balanced Performance</h2>
+                <div class="bot-card" data-model="bigcode/starcoder2-3b">
+                    <div class="bot-header">
+                        <div class="bot-name">StarCoder2 3B</div>
+                        <div class="bot-power">⭐⭐</div>
+                    </div>
+                    <div class="bot-description">BigCode's balanced model with excellent code understanding</div>
+                    <div class="bot-specs">3B params • State-of-the-art • 80+ languages</div>
+                </div>
+                <div class="bot-card" data-model="replit/replit-code-v1-3b">
+                    <div class="bot-header">
+                        <div class="bot-name">Replit Code v1 3B</div>
+                        <div class="bot-power">⭐⭐</div>
+                    </div>
+                    <div class="bot-description">Replit's code-specialized model with IDE integration focus</div>
+                    <div class="bot-specs">3B params • IDE-optimized • Multi-language</div>
+                </div>
+                <div class="bot-card" data-model="THUDM/codegeex4-all-9b">
+                    <div class="bot-header">
+                        <div class="bot-name">CodeGeeX4 All 9B</div>
+                        <div class="bot-power">⭐⭐</div>
+                    </div>
+                    <div class="bot-description">Comprehensive code model with strong reasoning capabilities</div>
+                    <div class="bot-specs">9B params • All-purpose • Advanced reasoning</div>
+                </div>
+                <div class="bot-card" data-model="lightblue/kurage-multilingual">
+                    <div class="bot-header">
+                        <div class="bot-name">Kurage Multilingual</div>
+                        <div class="bot-power">⭐⭐</div>
+                    </div>
+                    <div class="bot-description">Specialized multilingual coding assistant</div>
+                    <div class="bot-specs">Multilingual • Code-focused • Balanced speed</div>
+                </div>
+            </div>
+
+            <div class="category">
+                <h2><span class="speed-icon">🔥</span>Maximum Power</h2>
+                <div class="bot-card" data-model="codellama/CodeLlama-13b-Instruct-hf">
+                    <div class="bot-header">
+                        <div class="bot-name">Code Llama 13B Instruct</div>
+                        <div class="bot-power">⭐⭐⭐</div>
+                    </div>
+                    <div class="bot-description">Meta's powerful instruction-tuned coding model</div>
+                    <div class="bot-specs">13B params • Instruct-tuned • High accuracy</div>
+                </div>
+                <div class="bot-card" data-model="bigcode/starcoder2-15b">
+                    <div class="bot-header">
+                        <div class="bot-name">StarCoder2 15B</div>
+                        <div class="bot-power">⭐⭐⭐</div>
+                    </div>
+                    <div class="bot-description">Most powerful StarCoder variant with exceptional capabilities</div>
+                    <div class="bot-specs">15B params • Top performance • 80+ languages</div>
+                </div>
+                <div class="bot-card" data-model="deepseek-ai/deepseek-coder-33b-instruct">
+                    <div class="bot-header">
+                        <div class="bot-name">DeepSeek Coder 33B</div>
+                        <div class="bot-power">⭐⭐⭐</div>
+                    </div>
+                    <div class="bot-description">Most powerful model with exceptional reasoning and code quality</div>
+                    <div class="bot-specs">33B params • Maximum power • Enterprise-grade</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-section">
+            <div class="chat-header">
+                <div class="selected-bot-info">
+                    <div class="selected-bot-name" id="selectedBotName">No AI Selected</div>
+                    <div class="bot-power" id="selectedBotPower"></div>
+                </div>
+                <div class="chat-controls">
+                    <button class="btn btn-secondary" onclick="newChat()">New Chat</button>
+                    <button class="btn btn-secondary" onclick="clearMemory()">Clear Memory</button>
+                </div>
+            </div>
+
+            <div id="noSelection" class="no-selection">
+                <h3>🤖 Select an AI model above to start coding!</h3>
+                <p>Choose from our lightning-fast, balanced, or maximum power AI assistants.</p>
+            </div>
+
+            <div id="chatInterface" class="hidden">
+                <div class="chat-messages" id="chatMessages"></div>
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <div>AI is thinking...</div>
+                </div>
+                <div class="input-section">
+                    <textarea 
+                        class="chat-input" 
+                        id="chatInput" 
+                        placeholder="Ask your AI assistant anything about coding..."
+                        rows="3"
+                    ></textarea>
+                    <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentModel = null;
+        let chatHistory = [];
+        let chatId = null;
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDatabase();
+            setupEventListeners();
+        });
+
+        function setupEventListeners() {
+            // Bot selection
+            document.querySelectorAll('.bot-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    selectBot(this.dataset.model, this);
+                });
+            });
+
+            // Enter key to send message
+            document.getElementById('chatInput').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+        }
+
+        function selectBot(modelName, cardElement) {
+            // Prevent switching bots mid-chat
+            if (currentModel && chatHistory.length > 0) {
+                alert('Please start a new chat to switch AI models!');
+                return;
+            }
+
+            currentModel = modelName;
+            
+            // Update UI
+            document.querySelectorAll('.bot-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            cardElement.classList.add('selected');
+
+            // Update selected bot info
+            const botName = cardElement.querySelector('.bot-name').textContent;
+            const botPower = cardElement.querySelector('.bot-power').textContent;
+            
+            document.getElementById('selectedBotName').textContent = botName;
+            document.getElementById('selectedBotPower').textContent = botPower;
+
+            // Show chat interface
+            document.getElementById('noSelection').classList.add('hidden');
+            document.getElementById('chatInterface').classList.remove('hidden');
+
+            // Generate new chat ID
+            chatId = generateChatId();
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            
+            if (!message || !currentModel) return;
+
+            // Add user message to chat
+            addMessage('user', message);
+            input.value = '';
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+
+            try {
+                // Simulate API call to Hugging Face
+                const response = await callHuggingFaceAPI(currentModel, message);
+                addMessage('bot', response);
+                
+                // Save to memory
+                await saveToMemory(chatId, currentModel, message, response);
+                
+            } catch (error) {
+                addMessage('bot', 'Sorry, I encountered an error. Please try again.');
+                console.error('API Error:', error);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        async function callHuggingFaceAPI(model, prompt) {
+            try {
+                const response = await axios.post('/api/chat', {
+                    chat_id: chatId,
+                    model: model,
+                    message: prompt
+                });
+                
+                return response.data.response;
+            } catch (error) {
+                console.error('API Error:', error);
+                if (error.response?.data?.error) {
+                    return `Error: ${error.response.data.error}`;
+                }
+                return 'Sorry, I encountered an error connecting to the AI service. Please try again.';
+            }
+        }
+
+        function generateCodeResponse(modelName, prompt) {
+            const responses = [
+                `Here's a solution using ${modelName}:\n\n\`\`\`python\ndef example_function():\n    # Your code here\n    return "Hello from ${modelName}!"\n\`\`\`\n\nThis approach should work well for your use case.`,
+                `I can help you with that! Here's what ${modelName} suggests:\n\n\`\`\`javascript\nfunction solution() {\n    // Implementation by ${modelName}\n    console.log("Code generated by ${modelName}");\n}\n\`\`\`\n\nLet me know if you need any modifications!`,
+                `Great question! ${modelName} recommends this approach:\n\n\`\`\`python\nclass CodeHelper:\n    def __init__(self):\n        self.model = "${modelName}"\n    \n    def generate_code(self):\n        return "Efficient solution"\n\`\`\`\n\nThis should solve your problem efficiently.`
+            ];
+            
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        function addMessage(sender, text) {
+            const messagesContainer = document.getElementById('chatMessages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender}`;
+            
+            if (text.includes('```')) {
+                // Handle code blocks
+                messageDiv.innerHTML = formatCodeMessage(text);
+            } else {
+                messageDiv.textContent = text;
+            }
+            
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            
+            chatHistory.push({ sender, text, timestamp: new Date().toISOString() });
+        }
+
+        function formatCodeMessage(text) {
+            return text.replace(/```(\w+)?\n([\s\S]*?)```/g, 
+                '<pre><code>$2</code></pre>'
+            );
+        }
+
+        function newChat() {
+            if (confirm('Start a new chat? This will clear the current conversation.')) {
+                chatHistory = [];
+                chatId = generateChatId();
+                document.getElementById('chatMessages').innerHTML = '';
+                
+                // Allow model switching
+                document.querySelectorAll('.bot-card').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                
+                currentModel = null;
+                document.getElementById('selectedBotName').textContent = 'No AI Selected';
+                document.getElementById('selectedBotPower').textContent = '';
+                document.getElementById('noSelection').classList.remove('hidden');
+                document.getElementById('chatInterface').classList.add('hidden');
+            }
+        }
+
+        function clearMemory() {
+            if (confirm('Clear AI memory for this chat? The AI will forget previous context.')) {
+                axios.delete(`/api/chat/${chatId}/clear`)
+                    .then(response => {
+                        alert('Memory cleared! The AI will start fresh in the next message.');
+                    })
+                    .catch(error => {
+                        console.error('Error clearing memory:', error);
+                        alert('Failed to clear memory. Please try again.');
+                    });
+            }
+        }
+
+        function generateChatId() {
+            return 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // Database functions
+        async function initializeDatabase() {
+            try {
+                const response = await axios.get('/api/health');
+                console.log('Backend connected:', response.data);
+            } catch (error) {
+                console.error('Backend connection failed:', error);
+            }
+        }
+
+        async function saveToMemory(chatId, model, userMessage, botResponse) {
+            // Memory is automatically saved by the backend API
+            console.log('Message saved to memory');
+        }
+
+        // Add test functionality
+        async function testModel(modelName) {
+            try {
+                const response = await axios.get(`/api/test/${encodeURIComponent(modelName)}`);
+                console.log('Model test result:', response.data);
+                alert(`Test completed!\nModel: ${response.data.model_info.name}\nResponse time: ${response.data.response_time_seconds}s\nStatus: ${response.data.status}`);
+            } catch (error) {
+                console.error('Model test failed:', error);
+                alert('Model test failed. Check console for details.');
+            }
+        }
+
+        // Add test buttons to bot cards
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeDatabase();
+            setupEventListeners();
+            addTestButtons();
+        });
+
+        function addTestButtons() {
+            document.querySelectorAll('.bot-card').forEach(card => {
+                const testBtn = document.createElement('button');
+                testBtn.textContent = 'Test';
+                testBtn.className = 'btn btn-secondary';
+                testBtn.style.cssText = 'position: absolute; top: 10px; right: 10px; padding: 5px 10px; font-size: 0.8rem;';
+                testBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    testModel(card.dataset.model);
+                };
+                card.style.position = 'relative';
+                card.appendChild(testBtn);
+            });
+        }
+    </script>
+</body>
+</html>
