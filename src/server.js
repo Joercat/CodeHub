@@ -68,107 +68,164 @@ function initializeDatabase() {
 const HF_API_KEY = process.env.HF_API_KEY;
 const HF_API_URL = 'https://api-inference.huggingface.co/models/';
 
-// Bot configurations with their actual Hugging Face model paths
+// Updated bot configurations with verified working Hugging Face models
 const botConfigs = {
     'deepseek-coder-1.3b': {
         model: 'deepseek-ai/deepseek-coder-1.3b-instruct',
         maxTokens: 512,
         temperature: 0.3
     },
-    'codegen2-1b': {
-        model: 'Salesforce/codegen2-1B-multi',
+    'codegen-350m': {
+        model: 'Salesforce/codegen-350M-mono',
         maxTokens: 512,
-        temperature: 0.2
+        temperature: 0.3
     },
     'starcoder2-3b': {
         model: 'bigcode/starcoder2-3b',
         maxTokens: 1024,
         temperature: 0.3
     },
-    'replit-code-v1': {
-        model: 'replit/replit-code-v1-3b',
+    'tiny-starcoder': {
+        model: 'bigcode/tiny_starcoder_py',
         maxTokens: 512,
         temperature: 0.3
     },
-    'llama2-7b-codes': {
-        model: 'monsterapi/llama2-7b-tiny-codes-code-generation',
-        maxTokens: 1024,
+    'phi-1.5': {
+        model: 'microsoft/phi-1_5',
+        maxTokens: 512,
         temperature: 0.4
     },
-    'codegeex4-9b': {
-        model: 'THUDM/codegeex4-all-9b',
-        maxTokens: 1024,
+    'santacoder': {
+        model: 'bigcode/santacoder',
+        maxTokens: 512,
         temperature: 0.3
     },
-    'kurage-multilingual': {
-        model: 'lightblue/kurage-multilingual',
-        maxTokens: 1024,
-        temperature: 0.3
+    'gpt2-medium': {
+        model: 'gpt2-medium',
+        maxTokens: 512,
+        temperature: 0.7
     },
-    'starcoder2-15b': {
-        model: 'bigcode/starcoder2-15b',
-        maxTokens: 1024,
-        temperature: 0.3
+    'distilgpt2': {
+        model: 'distilgpt2',
+        maxTokens: 256,
+        temperature: 0.7
     },
-    'codellama-13b': {
-        model: 'codellama/CodeLlama-13b-Instruct-hf',
-        maxTokens: 2048,
-        temperature: 0.3
+    'flan-t5-base': {
+        model: 'google/flan-t5-base',
+        maxTokens: 512,
+        temperature: 0.4
     },
-    'deepseek-coder-33b': {
-        model: 'deepseek-ai/deepseek-coder-33b-instruct',
-        maxTokens: 2048,
+    'code-t5-small': {
+        model: 'Salesforce/codet5-small',
+        maxTokens: 512,
         temperature: 0.3
     }
 };
 
-// Hugging Face API interaction
+// Enhanced Hugging Face API interaction with better error handling
 async function queryHuggingFace(model, prompt, config) {
     if (!HF_API_KEY) {
         throw new Error('Hugging Face API key not configured');
     }
 
-    try {
-        const response = await fetch(`${HF_API_URL}${model}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${HF_API_KEY}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                inputs: prompt,
-                parameters: {
-                    max_new_tokens: config.maxTokens,
-                    temperature: config.temperature,
-                    return_full_text: false,
-                    do_sample: true
+    const maxRetries = 3;
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            console.log(`Attempting to query model: ${model} (attempt ${attempt})`);
+            
+            const response = await fetch(`${HF_API_URL}${model}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${HF_API_KEY}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    inputs: prompt,
+                    parameters: {
+                        max_new_tokens: config.maxTokens,
+                        temperature: config.temperature,
+                        return_full_text: false,
+                        do_sample: true,
+                        top_p: 0.95,
+                        top_k: 50
+                    },
+                    options: {
+                        wait_for_model: true,
+                        use_cache: false
+                    }
+                })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`API Error for ${model}: ${response.status} - ${errorText}`);
+                
+                // Handle specific error cases
+                if (response.status === 404) {
+                    throw new Error(`Model '${model}' not found on Hugging Face`);
+                } else if (response.status === 503) {
+                    // Model is loading, wait and retry
+                    if (attempt < maxRetries) {
+                        console.log(`Model ${model} is loading, waiting 5 seconds...`);
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                        continue;
+                    }
+                    throw new Error(`Model '${model}' is currently loading. Please try again later.`);
+                } else if (response.status === 429) {
+                    // Rate limited, wait and retry
+                    if (attempt < maxRetries) {
+                        console.log(`Rate limited for ${model}, waiting 3 seconds...`);
+                        await new Promise(resolve => setTimeout(resolve, 3000));
+                        continue;
+                    }
+                    throw new Error(`Rate limit exceeded for model '${model}'`);
                 }
-            })
-        });
+                
+                throw new Error(`HuggingFace API error: ${response.status} - ${errorText}`);
+            }
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HuggingFace API error: ${response.status} - ${errorText}`);
-        }
+            const result = await response.json();
+            console.log(`Successful response from ${model}:`, typeof result, Array.isArray(result));
+            
+            // Handle different response formats
+            if (Array.isArray(result) && result.length > 0) {
+                const firstResult = result[0];
+                return firstResult.generated_text || firstResult.text || 'No response generated';
+            } else if (result.generated_text !== undefined) {
+                return result.generated_text;
+            } else if (result[0] && result[0].generated_text !== undefined) {
+                return result[0].generated_text;
+            } else if (typeof result === 'string') {
+                return result;
+            } else {
+                console.warn('Unexpected response format:', result);
+                return 'Unable to parse response from AI model';
+            }
 
-        const result = await response.json();
-        
-        if (Array.isArray(result) && result.length > 0) {
-            return result[0].generated_text || result[0].text || 'No response generated';
-        } else if (result.generated_text) {
-            return result.generated_text;
-        } else {
-            return 'Unable to generate response';
+        } catch (error) {
+            lastError = error;
+            console.error(`Attempt ${attempt} failed for ${model}:`, error.message);
+            
+            // Don't retry for certain errors
+            if (error.message.includes('not found') || error.message.includes('404')) {
+                throw error;
+            }
+            
+            // Wait before retrying (except on last attempt)
+            if (attempt < maxRetries) {
+                await new Promise(resolve => setTimeout(resolve, 2000));
+            }
         }
-    } catch (error) {
-        console.error('HuggingFace API Error:', error);
-        throw error;
     }
+
+    throw lastError || new Error(`Failed to query ${model} after ${maxRetries} attempts`);
 }
 
-// Test individual model function
+// Test individual model function with better error handling
 async function testModel(botId, config) {
-    const testPrompt = "Write a simple Python function to add two numbers.";
+    const testPrompt = "def add_numbers(a, b):\n    # Write a function to add two numbers\n    return";
     const startTime = Date.now();
     
     try {
@@ -229,36 +286,26 @@ app.get('/test', async (req, res) => {
             console.log(`Testing single bot: ${testSingleBot}`);
             results.push(await testModel(testSingleBot, botConfigs[testSingleBot]));
         } else {
-            // Test all bots
-            console.log('Testing all AI models...');
+            // Test all bots with sequential testing to avoid rate limits
+            console.log('Testing all AI models sequentially...');
             
-            const testPromises = Object.entries(botConfigs).map(([botId, config]) => 
-                testModel(botId, config)
-            );
-            
-            // Run tests with a timeout to prevent hanging
-            const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Test timeout')), 60000)
-            );
-            
-            try {
-                results = await Promise.race([
-                    Promise.allSettled(testPromises),
-                    timeoutPromise
-                ]);
-                
-                // Convert settled promises to results
-                results = results.map(result => 
-                    result.status === 'fulfilled' ? result.value : {
+            for (const [botId, config] of Object.entries(botConfigs)) {
+                console.log(`Testing ${botId}...`);
+                try {
+                    const result = await testModel(botId, config);
+                    results.push(result);
+                    // Small delay between tests to avoid rate limits
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                } catch (error) {
+                    results.push({
+                        botId,
+                        model: config.model,
                         status: 'error',
-                        error: result.reason?.message || 'Unknown error'
-                    }
-                );
-            } catch (timeoutError) {
-                return res.status(500).json({
-                    error: 'Test timeout',
-                    message: 'Some models took too long to respond'
-                });
+                        responseTime: '0ms',
+                        response: null,
+                        error: error.message
+                    });
+                }
             }
         }
 
@@ -287,13 +334,14 @@ app.get('/test', async (req, res) => {
                     .model { border: 1px solid #ddd; margin: 10px 0; padding: 15px; border-radius: 5px; }
                     .working { border-left: 5px solid #4CAF50; }
                     .error { border-left: 5px solid #f44336; }
-                    .response { background: #f9f9f9; padding: 10px; margin-top: 10px; border-radius: 3px; font-family: monospace; }
+                    .response { background: #f9f9f9; padding: 10px; margin-top: 10px; border-radius: 3px; font-family: monospace; white-space: pre-wrap; }
                     .error-text { color: #f44336; }
                     .success-text { color: #4CAF50; }
                     .refresh-btn { background: #2196F3; color: white; padding: 10px 20px; border: none; border-radius: 5px; cursor: pointer; margin-bottom: 20px; }
                     .test-single { margin-bottom: 20px; }
-                    .test-single input { padding: 8px; margin-right: 10px; }
+                    .test-single input { padding: 8px; margin-right: 10px; width: 300px; }
                     .test-single button { padding: 8px 15px; background: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer; }
+                    .model-list { background: #f9f9f9; padding: 10px; border-radius: 3px; margin: 10px 0; }
                 </style>
             </head>
             <body>
@@ -301,8 +349,15 @@ app.get('/test', async (req, res) => {
                 
                 <div class="test-single">
                     <h3>Test Single Model:</h3>
-                    <input type="text" id="botId" placeholder="Enter bot ID (e.g., deepseek-coder-1.3b)">
+                    <input type="text" id="botId" placeholder="Enter bot ID (e.g., deepseek-coder-1.3b)" list="botList">
+                    <datalist id="botList">
+                        ${Object.keys(botConfigs).map(id => `<option value="${id}">`).join('')}
+                    </datalist>
                     <button onclick="testSingle()">Test Single Bot</button>
+                    
+                    <div class="model-list">
+                        <strong>Available models:</strong> ${Object.keys(botConfigs).join(', ')}
+                    </div>
                 </div>
                 
                 <button class="refresh-btn" onclick="location.reload()">Refresh All Tests</button>
@@ -393,7 +448,7 @@ app.post('/api/init-chat', async (req, res) => {
     }
 });
 
-// Handle chat messages
+// Handle chat messages with improved prompt formatting
 app.post('/api/chat', async (req, res) => {
     const { chatId, message, botId, botModel } = req.body;
     
@@ -435,18 +490,29 @@ app.post('/api/chat', async (req, res) => {
             );
         });
 
-        // Build context prompt
-        let contextPrompt = "You are a helpful coding assistant. Help the user with their programming questions.\n\n";
+        // Build context prompt with better formatting for code models
+        let contextPrompt = "";
         
-        for (const msg of history.slice(-5)) { // Last 5 messages for context
+        // Check if this is a coding-related bot
+        const isCodeBot = botId.includes('coder') || botId.includes('code') || botId.includes('star');
+        
+        if (isCodeBot) {
+            contextPrompt = "# Coding Assistant\n\nHelp with programming questions and provide clean, working code.\n\n";
+        } else {
+            contextPrompt = "You are a helpful AI assistant. Provide clear and helpful responses.\n\n";
+        }
+        
+        // Add conversation history (last 3 exchanges)
+        const recentHistory = history.slice(-6); // Last 6 messages = 3 exchanges
+        for (const msg of recentHistory) {
             if (msg.role === 'user') {
-                contextPrompt += `Human: ${msg.content}\n`;
+                contextPrompt += `User: ${msg.content}\n`;
             } else {
                 contextPrompt += `Assistant: ${msg.content}\n`;
             }
         }
         
-        contextPrompt += `\nHuman: ${message}\nAssistant:`;
+        contextPrompt += `User: ${message}\nAssistant:`;
 
         // Get bot configuration
         const config = botConfigs[botId];
@@ -462,9 +528,18 @@ app.post('/api/chat', async (req, res) => {
             let cleanResponse = aiResponse.trim();
             
             // Remove any repeated context or prompts
-            if (cleanResponse.includes('Human:') || cleanResponse.includes('Assistant:')) {
-                const parts = cleanResponse.split(/(?:Human:|Assistant:)/);
-                cleanResponse = parts[parts.length - 1].trim();
+            const cleanupPatterns = [
+                /^(User:|Assistant:|Human:|AI:)/gim,
+                /^(You are a helpful|# Coding Assistant)/gim
+            ];
+            
+            for (const pattern of cleanupPatterns) {
+                cleanResponse = cleanResponse.replace(pattern, '').trim();
+            }
+            
+            // If response is empty or too short, provide a fallback
+            if (!cleanResponse || cleanResponse.length < 10) {
+                cleanResponse = "I understand your question, but I'm having trouble generating a detailed response right now. Could you please rephrase or provide more context?";
             }
 
             // Store AI response
@@ -481,8 +556,18 @@ app.post('/api/chat', async (req, res) => {
         } catch (aiError) {
             console.error('AI API error:', aiError);
             
-            // Fallback response
-            const fallbackResponse = "I'm experiencing some technical difficulties right now. Please try again in a moment, or rephrase your question.";
+            // Provide a more specific fallback response based on the error
+            let fallbackResponse = "I'm experiencing some technical difficulties right now. ";
+            
+            if (aiError.message.includes('not found') || aiError.message.includes('404')) {
+                fallbackResponse += "This AI model may not be available. Please try selecting a different model.";
+            } else if (aiError.message.includes('loading')) {
+                fallbackResponse += "The AI model is currently loading. Please try again in a few moments.";
+            } else if (aiError.message.includes('rate limit')) {
+                fallbackResponse += "Too many requests. Please wait a moment before trying again.";
+            } else {
+                fallbackResponse += "Please try again in a moment, or rephrase your question.";
+            }
             
             const botStmt = db.prepare('INSERT INTO messages (chat_id, role, content) VALUES (?, ?, ?)');
             botStmt.run([chatId, 'assistant', fallbackResponse]);
@@ -540,6 +625,7 @@ async function startServer() {
             console.log(`Server running on port ${PORT}`);
             console.log(`Visit http://localhost:${PORT} to use the application`);
             console.log(`Visit http://localhost:${PORT}/test to test AI models`);
+            console.log(`\nMake sure to set your HF_API_KEY environment variable!`);
         });
     } catch (error) {
         console.error('Failed to start server:', error);
